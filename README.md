@@ -1,4 +1,4 @@
-# Deal AI
+# Deal Stage Classifier
 
 A confident and concise B2B SaaS Sales Simulator backed by LLMs and a FastAPI PostgreSQL stack. Practice your pitching against "Alex" the AI prospect, and automatically classify your deals across conversational funnels.
 
@@ -15,7 +15,7 @@ A confident and concise B2B SaaS Sales Simulator backed by LLMs and a FastAPI Po
 | **Frontend** | Vanilla JS, Pure HTML/CSS, Direct State Lifecycle Rendering |
 | **Backend** | FastAPI, Uvicorn, Python 3.10+ |
 | **Database** | PostgreSQL (asyncpg), SQLAlchemy ORM |
-| **LLMs**  | Groq API (`llama3-8b-8192`), LM Studio (Local Failover) |
+| **LLMs**  | Groq API (`llama3-8b-instant`), LM Studio (Local Failover) |
 
 ## Setup Instructions
 
