@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deal Stage Classifier</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --sidebar-bg: #0f172a;
+      --surface: #1e2128;
+      --surface-hover: #2a2e37;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --glow: 0 0 12px var(--primary);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100vh;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #app {
+      height: 100%; display: flex;
+    }
+    button {
+      background: var(--primary); color: #fff;
+      border: none; padding: 10px 20px; border-radius: 8px;
+      cursor: pointer; font-weight: 600; font-size: 14px;
+      transition: all 0.2s;
+    }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    button.secondary:hover { background: var(--surface-hover); }
+    button.danger { background: var(--danger); }
+    button.danger:hover { background: #dc2626; }
+    button.sm { padding: 6px 14px; font-size: 13px; }
+
+    /* ===== SIDEBAR (ChatGPT-style) ===== */
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-header h3 { margin: 0; font-size: 15px; }
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .deal-item {
+      padding: 10px 12px;
+      margin-bottom: 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.15s;
+    }
+    .deal-item:hover { background: #1e293b; }
+    .deal-item.active { background: #334155; }
+    .deal-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .deal-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stage-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .stage-Awareness { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .stage-Interest { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .stage-Evaluation { background: rgba(168,85,247,0.15); color: #c084fc; }
+    .stage-Decision { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .sidebar-empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .header {
+      padding: 14px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 56px;
+    }
+    .header h3 { margin: 0; font-size: 16px; }
+    .content-area {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ===== HOME ===== */
+    .home {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; width: 100%; gap: 28px;
+    }
+    .home h1 { font-size: 2.2rem; margin: 0; }
+    .home p { color: var(--text-muted); margin: 0; font-size: 15px; }
+    .home-actions { display: flex; gap: 12px; }
+
+    /* ===== CHAT ===== */
+    .chat-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; height: 100%; }
+    .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .input-area { padding: 14px 24px; background: var(--surface); border-top: 1px solid var(--border); display: flex; gap: 12px; }
+    .input-area input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 12px 16px; border-radius: 8px;
+      font-size: 15px; outline: none;
+    }
+    .input-area input:focus { border-color: var(--primary); }
+    .msg-row { display: flex; width: 100%; }
+    .msg-sales { justify-content: flex-start; }
+    .msg-prospect { justify-content: flex-end; }
+    .msg-bubble {
+      max-width: 75%; padding: 12px 16px; border-radius: 14px;
+      line-height: 1.5; font-size: 15px;
+    }
+    .msg-sales .msg-bubble { background: var(--surface); border-bottom-left-radius: 4px; }
+    .msg-prospect .msg-bubble { background: var(--primary); border-bottom-right-radius: 4px; }
+
+    /* ===== DETAIL (split) ===== */
+    .split-layout { display: flex; width: 100%; height: 100%; }
+    .split-left {
+      width: 50%; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+      background: var(--surface-hover);
+    }
+    .split-right {
+      width: 50%; overflow-y: auto; padding: 28px;
+      background: var(--bg);
+    }
+    .stage-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+    }
+    .stage-box h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.2rem; }
+    .stage-section {
+      padding: 14px 18px; border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 12px;
+      background: rgba(0,0,0,0.2); transition: all 0.3s;
+    }
+    .stage-section.active {
+      border-color: var(--primary);
+      box-shadow: var(--glow);
+      background: rgba(59, 130, 246, 0.08);
+    }
+    .stage-section h4 {
+      margin: 0 0 6px 0; color: var(--primary);
+      text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-wrap {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal {
+      background: var(--surface); padding: 32px; border-radius: 16px;
+      width: 420px; text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .badge {
+      display: inline-block; padding: 6px 14px; border-radius: 20px;
+      font-weight: 600; font-size: 13px; margin: 0 4px;
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const API = "http://localhost:8000";
+
+const PRODUCTS = [
+  "wireless noise-cancelling headphones",
+  "high-performance gaming laptop",
+  "smartwatch with health tracking",
+  "4K action camera",
+  "mesh WiFi router system",
+  "tablet for productivity and entertainment",
+  "portable Bluetooth speaker",
+  "gaming console",
+  "ultrawide monitor",
+  "mechanical keyboard"
+];
+
+let state = {
+  view: "HOME",         // HOME | CHAT | DETAIL
+  prospect: "",
+  product: null,
+  chatParams: [],       // [{role, text}]
+  sidebarDeals: [],     // loaded from GET /deals
+  activeDeal: null,     // full deal object for detail view
+  analysis: null,       // classification result after ending deal
+  loading: false
+};
+
+const appEl = document.getElementById('app');
+
+// ===========================
+// RENDER ENGINE
+// ===========================
+
+function render() {
+  let mainHtml = '';
+  switch (state.view) {
+    case 'HOME': mainHtml = buildHome(); break;
+    case 'CHAT': mainHtml = buildChat(); break;
+    case 'DETAIL': mainHtml = buildDetail(); break;
+  }
+
+  appEl.innerHTML = `
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h3>📊 Deals</h3>
+        <button class="sm" onclick="startDeal()">+ New</button>
+      </div>
+      <div class="sidebar-list" id="dealList">
+        ${buildSidebar()}
+      </div>
+    </div>
+    <div class="main">
+      ${mainHtml}
+    </div>
+  `;
+
+  // Post-render: scroll chat, focus input
+  if (state.view === "CHAT") {
+    const ms = document.getElementById("msgs");
+    if (ms) ms.scrollTop = ms.scrollHeight;
+    const inp = document.getElementById("chat-inp");
+    if (inp) inp.focus();
+  }
+}
+
+// ===========================
+// SIDEBAR
+// ===========================
+
+function buildSidebar() {
+  if (!state.sidebarDeals || state.sidebarDeals.length === 0) {
+    return '<div class="sidebar-empty">No deals yet.<br>Start a new conversation!</div>';
+  }
+
+  return state.sidebarDeals.map(d => {
+    const stage = d.stage || "Unknown";
+    const isActive = state.view === 'DETAIL' && state.activeDeal && state.activeDeal.id === d.id;
+    return `
+      <div class="deal-item ${isActive ? 'active' : ''}" onclick="openDeal(${d.id})">
+        <div class="deal-title">${d.prospect || 'Unknown'}</div>
+        <div class="deal-meta">
+          <span class="stage-badge stage-${stage}">${stage}</span>
+          <span>${d.created_at ? new Date(d.created_at).toLocaleDateString() : ''}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===========================
+// HOME VIEW
+// ===========================
+
+function buildHome() {
+  return `
+    <div class="content-area">
+      <div class="home">
+        <h1>Deal Classifier Engine</h1>
+        <p>AI-powered sales conversation analyzer</p>
+        <div class="home-actions">
+          <button onclick="startDeal()">Start New Deal</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===========================
+// CHAT VIEW
+// ===========================
+
+function formatMsg(m) {
+  if (!m || !m.text) return '';
+  const align = m.role === 'sales' ? 'msg-sales' : 'msg-prospect';
+  const label = m.role === 'sales' ? '🤖 Sales Rep' : '👤 You';
+  return `
+    <div class="msg-row ${align}">
+      <div class="msg-bubble">
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">${label}</div>
+        ${m.text}
+      </div>
+    </div>
+  `;
+}
+
+function buildChat() {
+  let modalHtml = "";
+  if (state.analysis) {
+    const stage = state.analysis.stage || "Unknown";
+    const confidence = state.analysis.confidence || 0;
+    const reason = state.analysis.reason || "No reason provided";
+    // Derive status from stage — NOT stored in DB
+    const derivedStatus = stage === "Decision" ? "WON" : "IN PROGRESS";
+    const statusColor = derivedStatus === "WON" ? "var(--success)" : "var(--warning)";
+    modalHtml = `
+      <div class="modal-wrap" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+          <h2 style="margin-top:0">Deal Classified</h2>
+          <div style="margin: 20px 0;">
+            <span class="badge" style="background:#334155">${stage}</span>
+            <span class="badge" style="background:${statusColor};color:#000">${derivedStatus}</span>
+            <span class="badge" style="background:var(--primary)">${Math.round(confidence * 100)}%</span>
+          </div>
+          <p style="color:var(--text-muted);margin-bottom:24px">${reason}</p>
+          <button onclick="goHome()">Done</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    ${modalHtml}
+    <div class="header">
+      <h3>Sales Chat • ${state.prospect} <span style="font-weight:normal; font-size:13px; color:var(--text-muted);">(${state.product || 'Product'})</span></h3>
+      ${!state.analysis ? `<button class="danger sm" onclick="endDeal()">End Deal</button>` : ''}
+    </div>
+    <div class="content-area">
+      <div class="chat-container">
+        <div class="messages" id="msgs">
+          ${state.chatParams.map(formatMsg).join('')}
+          ${state.loading ? `<div class="msg-row msg-sales"><div class="msg-bubble" style="opacity:0.5; font-style:italic">Typing...</div></div>` : ''}
+        </div>
+        <div class="input-area">
+          <input type="text" id="chat-inp" placeholder="Respond as the prospect..." onkeydown="if(event.key==='Enter') sendChat()">
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===========================
+// DETAIL VIEW
+// ===========================
+
+function buildDetail() {
+  if (!state.activeDeal) {
+    return '<div class="content-area"><div class="home"><p>Deal not found.</p></div></div>';
+  }
+  const d = state.activeDeal;
+  const bd = d.breakdown || {};
+  const stages = ['Awareness', 'Interest', 'Evaluation', 'Decision'];
+  const convo = d.conversation || [];
+
+  const stageSections = stages.map(st => {
+    const isActive = d.stage === st;
+    const txt = bd[st] || 'No detail recorded.';
+    return `
+      <div class="stage-section ${isActive ? 'active' : ''}">
+        <h4>${st}</h4>
+        <p style="margin:0; font-size:14px; color:var(--text-muted); line-height:1.5;">${txt}</p>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="header">
+      <h3>Deal #${d.id} • ${d.prospect} <span class="stage-badge stage-${d.stage}" style="margin-left:8px">${d.stage}</span></h3>
+      <button class="secondary sm" onclick="goHome()">Close</button>
+    </div>
+    <div class="split-layout">
+      <div class="split-left">
+        <div style="padding:12px 16px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">Conversation History</div>
+        <div class="messages" style="height:100%;">
+          ${convo.length === 0 ? '<p style="text-align:center;color:var(--text-muted);padding:20px;">No messages.</p>' : convo.map(formatMsg).join('')}
+        </div>
+      </div>
+      <div class="split-right">
+        <div class="stage-box">
+          <h3>Deal Stages for ${d.prospect}</h3>
+          ${stageSections}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===========================
+// ACTIONS
+// ===========================
+
+async function loadSidebar() {
+  console.log("Loading sidebar deals...");
+  try {
+    const res = await fetch(API + '/deals');
+    const data = await res.json();
+    console.log("Sidebar deals:", data);
+    if (Array.isArray(data)) {
+      state.sidebarDeals = data;
+    } else {
+      state.sidebarDeals = [];
+    }
+  } catch(e) {
+    console.error("Failed to load sidebar:", e);
+    state.sidebarDeals = [];
+  }
+  render();
+}
+
+async function startDeal() {
+  const p = prompt("Enter Prospect Name (e.g. John / Sarah):");
+  if (!p || !p.trim()) return;
+
+  state.prospect = p.trim();
+  state.product = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
+  state.chatParams = [];
+  state.analysis = null;
+  state.loading = true;
+  state.view = "CHAT";
+  render();
+
+  console.log("Starting deal:", { prospect: state.prospect, product: state.product });
+
+  try {
+    const res = await fetch(API + '/chat', {
+      method: 'POST',
+      body: JSON.stringify({ conversation: [], product: state.product }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    console.log("Initial reply:", data);
+    if (!res.ok) throw new Error(data.detail || "Chat error");
+    if (data.reply) {
+      state.chatParams.push({ role: 'sales', text: data.reply });
+    }
+  } catch(e) {
+    console.error("startDeal error:", e);
+    alert("Failed to start deal: " + e.message);
+  }
+  state.loading = false;
+  render();
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-inp');
+  if (!inp || !inp.value.trim()) return;
+
+  const userText = inp.value.trim();
+  state.chatParams.push({ role: 'prospect', text: userText });
+  inp.value = '';
+  state.loading = true;
+  render();
+
+  console.log("Sending conversation:", JSON.stringify(state.chatParams));
+
+  try {
+    const res = await fetch(API + '/chat', {
+      method: 'POST',
+      body: JSON.stringify({ conversation: state.chatParams, product: state.product }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    console.log("Sales reply:", data);
+    if (!res.ok) throw new Error(data.detail || "Chat error");
+    if (data.reply) {
+      state.chatParams.push({ role: 'sales', text: data.reply });
+    }
+  } catch(e) {
+    console.error("sendChat error:", e);
+    alert("Chat error: " + e.message);
+  }
+  state.loading = false;
+  render();
+}
+
+async function endDeal() {
+  if (state.chatParams.length === 0) {
+    alert("No conversation to classify. Send some messages first.");
+    return;
+  }
+
+  state.loading = true;
+  render();
+
+  const payload = {
+    prospect: state.prospect,
+    conversation: state.chatParams
+  };
+
+  console.log("Ending deal — sending to POST /deals:", JSON.stringify(payload));
+
+  try {
+    const res = await fetch(API + '/deals', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    console.log("POST /deals response:", data);
+
+    if (!res.ok) throw new Error(data.detail || "Failed to classify deal");
+
+    state.analysis = {
+      stage: data.stage || "Unknown",
+      confidence: data.confidence || 0,
+      reason: data.reason || "No reason provided"
+    };
+
+    // Reload sidebar to show new deal
+    await loadSidebarSilent();
+  } catch(e) {
+    console.error("endDeal error:", e);
+    alert("Failed to end deal: " + e.message);
+    state.analysis = {
+      stage: "Unknown",
+      confidence: 0,
+      reason: "Error: " + e.message
+    };
+  }
+  state.loading = false;
+  render();
+}
+
+async function loadSidebarSilent() {
+  try {
+    const res = await fetch(API + '/deals');
+    const data = await res.json();
+    if (Array.isArray(data)) state.sidebarDeals = data;
+  } catch(e) { console.error("sidebar reload error:", e); }
+}
+
+async function openDeal(id) {
+  console.log("Opening deal:", id);
+  try {
+    const res = await fetch(API + '/deals/' + id);
+    const data = await res.json();
+    console.log("GET /deals/" + id + " response:", data);
+
+    if (!res.ok) throw new Error(data.detail || "Deal not found");
+
+    state.activeDeal = data;
+    state.view = "DETAIL";
+  } catch(e) {
+    console.error("openDeal error:", e);
+    alert("Failed to open deal: " + e.message);
+  }
+  render();
+}
+
+function goHome() {
+  state.view = "HOME";
+  state.analysis = null;
+  state.activeDeal = null;
+  render();
+}
+
+function closeModal(e) {
+  if (e.target.classList.contains('modal-wrap')) {
+    state.analysis = null;
+    render();
+  }
+}
+
+// Keyboard: Esc to go back
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (state.analysis) { state.analysis = null; render(); }
+    else if (state.view === 'DETAIL') { goHome(); }
+    else if (state.view === 'CHAT') { goHome(); }
+  }
+});
+
+// ===========================
+// BOOT
+// ===========================
+loadSidebar();
+</script>
+</body>
+</html>
