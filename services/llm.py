@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 USE_LM_STUDIO = os.getenv("USE_LM_STUDIO", "false").lower() == "true"
-LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1/chat/completions")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+LM_STUDIO_URL = os.getenv("LM_STUDIO_URL")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 logger = logging.getLogger(__name__)
 

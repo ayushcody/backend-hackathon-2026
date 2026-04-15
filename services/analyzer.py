@@ -12,11 +12,14 @@ def parse_llm_json(text: str) -> dict:
         return json.loads(match.group())
     raise ValueError("No JSON found in LLM response")
 
-async def classify_deal(conversation: list[dict]) -> ClassificationResult:
-    conversation_text = "\n".join(
-        f"{msg.get('role', 'unknown')}: {msg.get('text', '')}"
-        for msg in conversation
-    )
+async def classify_deal(conversation) -> ClassificationResult:
+    if isinstance(conversation, str):
+        conversation_text = conversation
+    else:
+        conversation_text = "\n".join(
+            f"{msg.get('role', 'unknown')}: {msg.get('text', '')}"
+            for msg in conversation
+        )
 
     print("=== LLM CLASSIFICATION INPUT ===")
     print(conversation_text)
@@ -74,11 +77,14 @@ Rules:
         reason=data.get("reason", "")
     )
 
-async def get_deal_breakdown(conversation: list[dict]) -> dict:
-    conversation_text = "\n".join(
-        f"{msg.get('role', 'unknown')}: {msg.get('text', '')}"
-        for msg in conversation
-    )
+async def get_deal_breakdown(conversation) -> dict:
+    if isinstance(conversation, str):
+        conversation_text = conversation
+    else:
+        conversation_text = "\n".join(
+            f"{msg.get('role', 'unknown')}: {msg.get('text', '')}"
+            for msg in conversation
+        )
         
     system_msg = build_system_message("You are a sales coach. Respond in valid JSON only.")
     

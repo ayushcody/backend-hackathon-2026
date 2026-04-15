@@ -2,110 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Deal Stage Classifier</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DealFlow AI | Advanced Stage Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f1115;
-      --sidebar-bg: #0f172a;
-      --surface: #1e2128;
-      --surface-hover: #2a2e37;
-      --border: #1e293b;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
+      --bg: #09090b;
+      --sidebar-bg: #0f1016;
+      --surface: #17171e;
+      --surface-hover: #1f1f29;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
       --primary: #3b82f6;
       --primary-hover: #2563eb;
-      --success: #22c55e;
+      --success: #10b981;
       --danger: #ef4444;
       --warning: #f59e0b;
-      --glow: 0 0 12px var(--primary);
+      --glow: 0 0 15px rgba(59, 130, 246, 0.4);
+      --glass: rgba(23, 23, 30, 0.7);
     }
+
     * { box-sizing: border-box; }
-    html, body {
+    
+    body {
       margin: 0; padding: 0; height: 100vh;
       background: var(--bg); color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
     }
+
+    h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
     #app {
       height: 100%; display: flex;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
     }
+
+    /* ===== SHARED STYLES ===== */
     button {
       background: var(--primary); color: #fff;
-      border: none; padding: 10px 20px; border-radius: 8px;
+      border: none; padding: 10px 20px; border-radius: 10px;
       cursor: pointer; font-weight: 600; font-size: 14px;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; align-items: center; gap: 8px;
     }
-    button:hover { background: var(--primary-hover); }
+    button:hover { 
+      background: var(--primary-hover); 
+      transform: translateY(-1px);
+      box-shadow: var(--glow);
+    }
+    button:active { transform: translateY(0px); }
+    
     button.secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
     button.secondary:hover { background: var(--surface-hover); }
-    button.danger { background: var(--danger); }
-    button.danger:hover { background: #dc2626; }
-    button.sm { padding: 6px 14px; font-size: 13px; }
+    
+    button.danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+    button.danger:hover { background: var(--danger); color: #fff; }
+    
+    button.sm { padding: 6px 14px; font-size: 13px; border-radius: 8px; }
 
-    /* ===== SIDEBAR (ChatGPT-style) ===== */
+    /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 260px;
-      min-width: 260px;
+      width: 280px;
+      min-width: 280px;
       background: var(--sidebar-bg);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       height: 100%;
-      overflow: hidden;
+      z-index: 10;
     }
+    
     .sidebar-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 24px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 16px;
     }
-    .sidebar-header h3 { margin: 0; font-size: 15px; }
+    
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    
+    .brand .dot {
+      width: 10px; height: 10px; background: var(--primary); border-radius: 50%;
+      box-shadow: 0 0 10px var(--primary);
+    }
+
     .sidebar-list {
       flex: 1;
       overflow-y: auto;
-      padding: 8px;
+      padding: 0 12px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
+
     .deal-item {
-      padding: 10px 12px;
-      margin-bottom: 4px;
-      border-radius: 8px;
+      padding: 12px;
+      border-radius: 12px;
       cursor: pointer;
       background: transparent;
-      transition: background 0.15s;
+      transition: all 0.2s ease;
+      position: relative;
+      border: 1px solid transparent;
     }
-    .deal-item:hover { background: #1e293b; }
-    .deal-item.active { background: #334155; }
+    
+    .deal-item:hover { 
+      background: var(--surface); 
+      border-color: var(--border);
+    }
+    
+    .deal-item.active { 
+      background: var(--surface-hover); 
+      border-color: var(--primary);
+    }
+    
     .deal-title {
-      font-size: 14px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 14px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px;
     }
+    
     .deal-meta {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-top: 3px;
       display: flex;
+      align-items: center;
       justify-content: space-between;
     }
-    .stage-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 600;
+
+    .status-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
     }
-    .stage-Awareness { background: rgba(59,130,246,0.15); color: #60a5fa; }
-    .stage-Interest { background: rgba(245,158,11,0.15); color: #fbbf24; }
-    .stage-Evaluation { background: rgba(168,85,247,0.15); color: #c084fc; }
-    .stage-Decision { background: rgba(34,197,94,0.15); color: #4ade80; }
-    .sidebar-empty {
-      padding: 24px 16px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
+    
+    .pulse-Awareness { background: var(--primary); }
+    .pulse-Interest { background: var(--warning); }
+    .pulse-Evaluation { background: #a855f7; }
+    .pulse-Decision { background: var(--success); }
 
     /* ===== MAIN CONTENT ===== */
     .main {
@@ -113,105 +158,240 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      overflow: hidden;
+      position: relative;
     }
+
     .header {
-      padding: 14px 24px;
-      background: var(--surface);
+      padding: 0 24px;
+      height: 64px;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      min-height: 56px;
+      position: sticky; top: 0; z-index: 5;
     }
-    .header h3 { margin: 0; font-size: 16px; }
+    
+    .header h3 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 12px; }
+
     .content-area {
       flex: 1;
-      overflow: hidden;
+      overflow-y: auto;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
     }
 
     /* ===== HOME ===== */
-    .home {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      height: 100%; width: 100%; gap: 28px;
+    .home-hero {
+      text-align: center;
+      margin-top: 10vh;
+      max-width: 500px;
     }
-    .home h1 { font-size: 2.2rem; margin: 0; }
-    .home p { color: var(--text-muted); margin: 0; font-size: 15px; }
-    .home-actions { display: flex; gap: 12px; }
+    
+    .home-hero h1 { font-size: 3rem; margin-bottom: 16px; line-height: 1.1; }
+    .home-hero p { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 32px; line-height: 1.6; }
 
     /* ===== CHAT ===== */
-    .chat-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; height: 100%; }
-    .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-    .input-area { padding: 14px 24px; background: var(--surface); border-top: 1px solid var(--border); display: flex; gap: 12px; }
-    .input-area input {
-      flex: 1; background: var(--bg); border: 1px solid var(--border);
-      color: var(--text); padding: 12px 16px; border-radius: 8px;
-      font-size: 15px; outline: none;
+    .chat-view {
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-    .input-area input:focus { border-color: var(--primary); }
-    .msg-row { display: flex; width: 100%; }
-    .msg-sales { justify-content: flex-start; }
-    .msg-prospect { justify-content: flex-end; }
-    .msg-bubble {
-      max-width: 75%; padding: 12px 16px; border-radius: 14px;
-      line-height: 1.5; font-size: 15px;
-    }
-    .msg-sales .msg-bubble { background: var(--surface); border-bottom-left-radius: 4px; }
-    .msg-prospect .msg-bubble { background: var(--primary); border-bottom-right-radius: 4px; }
 
-    /* ===== DETAIL (split) ===== */
-    .split-layout { display: flex; width: 100%; height: 100%; }
-    .split-left {
-      width: 50%; border-right: 1px solid var(--border);
-      display: flex; flex-direction: column; overflow: hidden;
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+
+    .msg-group { display: flex; flex-direction: column; gap: 6px; }
+    .msg-group.sales { align-items: flex-start; }
+    .msg-group.prospect { align-items: flex-end; }
+
+    .msg-bubble {
+      padding: 14px 18px;
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 85%;
+      border-radius: 18px;
+    }
+
+    .sales .msg-bubble {
+      background: var(--sidebar-bg);
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .prospect .msg-bubble {
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .message-info {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .typing-indicator {
+      display: flex; gap: 4px; padding: 12px;
+    }
+    .typing-indicator span {
+      width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+
+    .input-bar {
+      padding: 20px 24px;
       background: var(--surface-hover);
+      border-top: 1px solid var(--border);
+      display: flex; gap: 12px;
     }
-    .split-right {
-      width: 50%; overflow-y: auto; padding: 28px;
+    
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-bar input {
+      width: 100%;
       background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
     }
-    .stage-box {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 24px;
+    
+    .input-bar input:focus { border-color: var(--primary); }
+
+    /* ===== DETAIL SPLIT ===== */
+    .detail-view { width: 100%; height: 100%; display: flex; }
+    
+    .detail-chat-panel {
+      flex: 1; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; background: var(--bg);
     }
-    .stage-box h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.2rem; }
-    .stage-section {
-      padding: 14px 18px; border: 1px solid var(--border);
-      border-radius: 8px; margin-bottom: 12px;
-      background: rgba(0,0,0,0.2); transition: all 0.3s;
+    
+    .detail-insights-panel {
+      width: 400px;
+      padding: 24px;
+      overflow-y: auto;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
-    .stage-section.active {
-      border-color: var(--primary);
-      box-shadow: var(--glow);
-      background: rgba(59, 130, 246, 0.08);
+
+    .insight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
     }
-    .stage-section h4 {
-      margin: 0 0 6px 0; color: var(--primary);
-      text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+    
+    .insight-card h4 { margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); text-transform: uppercase; }
+
+    .stage-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid transparent;
+      opacity: 0.5;
     }
+    
+    .stage-pill.complete { opacity: 1; color: var(--text); }
+    .stage-pill.current { opacity: 1; background: rgba(59, 130, 246, 0.1); border-color: var(--primary); color: var(--text); }
+    
+    .stage-pill .indicator {
+      width: 8px; height: 8px; border-radius: 50%; background: #52525b;
+    }
+    
+    .stage-pill.complete .indicator { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .stage-pill.current .indicator { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
 
     /* ===== MODAL ===== */
-    .modal-wrap {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-      display: flex; align-items: center; justify-content: center; z-index: 50;
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+      animation: fadeIn 0.3s ease;
     }
-    .modal {
-      background: var(--surface); padding: 32px; border-radius: 16px;
-      width: 420px; text-align: center;
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .analysis-modal {
+      background: var(--surface);
       border: 1px solid var(--border);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      border-radius: 24px;
+      padding: 40px;
+      width: 480px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      animation: modalSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .badge {
-      display: inline-block; padding: 6px 14px; border-radius: 20px;
-      font-weight: 600; font-size: 13px; margin: 0 4px;
+    
+    @keyframes modalSlide {
+      from { transform: translateY(20px) scale(0.95); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
     }
+
+    .health-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px auto;
+      font-size: 28px;
+    }
+    
+    .health-WON { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 2px solid var(--success); }
+    .health-PROGRESS { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 2px solid var(--warning); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
   </style>
 </head>
 <body>
+
 <div id="app"></div>
+
 <script>
 const API = "http://localhost:8000";
 
@@ -229,46 +409,64 @@ const PRODUCTS = [
 ];
 
 let state = {
-  view: "HOME",         // HOME | CHAT | DETAIL
+  view: "HOME",
   prospect: "",
   product: null,
-  chatParams: [],       // [{role, text}]
-  sidebarDeals: [],     // loaded from GET /deals
-  activeDeal: null,     // full deal object for detail view
-  analysis: null,       // classification result after ending deal
+  chatParams: [],
+  sidebarDeals: [],
+  activeDeal: null,
+  analysis: null,
   loading: false
 };
 
-const appEl = document.getElementById('app');
-
-// ===========================
-// RENDER ENGINE
-// ===========================
-
 function render() {
-  let mainHtml = '';
-  switch (state.view) {
-    case 'HOME': mainHtml = buildHome(); break;
-    case 'CHAT': mainHtml = buildChat(); break;
-    case 'DETAIL': mainHtml = buildDetail(); break;
-  }
-
-  appEl.innerHTML = `
+  const appEl = document.getElementById('app');
+  
+  // Build Sidebar
+  const sidebarHtml = `
     <div class="sidebar">
       <div class="sidebar-header">
-        <h3>📊 Deals</h3>
-        <button class="sm" onclick="startDeal()">+ New</button>
+        <div class="brand">
+          <div class="dot"></div>
+          <span>DealFlow AI</span>
+        </div>
+        <button onclick="startDeal()" style="width: 100%;">
+          <span>+</span> Start New Deal
+        </button>
       </div>
-      <div class="sidebar-list" id="dealList">
-        ${buildSidebar()}
+      <div class="sidebar-list">
+        ${state.sidebarDeals.length === 0 ? `
+          <div class="sidebar-empty">No conversations yet</div>
+        ` : state.sidebarDeals.map(d => `
+          <div class="deal-item ${state.activeDeal?.id === d.id && state.view === 'DETAIL' ? 'active' : ''}" onclick="openDeal(${d.id})">
+            <div class="deal-title">${d.prospect}</div>
+            <div class="deal-meta">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <div class="status-pulse pulse-${d.stage}"></div>
+                <span>${d.stage}</span>
+              </div>
+              <span>${new Date(d.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `).join('')}
       </div>
-    </div>
-    <div class="main">
-      ${mainHtml}
     </div>
   `;
 
-  // Post-render: scroll chat, focus input
+  // Build Main Content
+  let mainContent = '';
+  if (state.view === "HOME") mainContent = renderHome();
+  if (state.view === "CHAT") mainContent = renderChat();
+  if (state.view === "DETAIL") mainContent = renderDetail();
+
+  appEl.innerHTML = `
+    ${sidebarHtml}
+    <div class="main">
+      ${mainContent}
+    </div>
+  `;
+
+  // UI Refinements
   if (state.view === "CHAT") {
     const ms = document.getElementById("msgs");
     if (ms) ms.scrollTop = ms.scrollHeight;
@@ -277,86 +475,48 @@ function render() {
   }
 }
 
-// ===========================
-// SIDEBAR
-// ===========================
-
-function buildSidebar() {
-  if (!state.sidebarDeals || state.sidebarDeals.length === 0) {
-    return '<div class="sidebar-empty">No deals yet.<br>Start a new conversation!</div>';
-  }
-
-  return state.sidebarDeals.map(d => {
-    const stage = d.stage || "Unknown";
-    const isActive = state.view === 'DETAIL' && state.activeDeal && state.activeDeal.id === d.id;
-    return `
-      <div class="deal-item ${isActive ? 'active' : ''}" onclick="openDeal(${d.id})">
-        <div class="deal-title">${d.prospect || 'Unknown'}</div>
-        <div class="deal-meta">
-          <span class="stage-badge stage-${stage}">${stage}</span>
-          <span>${d.created_at ? new Date(d.created_at).toLocaleDateString() : ''}</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ===========================
-// HOME VIEW
-// ===========================
-
-function buildHome() {
+function renderHome() {
   return `
     <div class="content-area">
-      <div class="home">
-        <h1>Deal Classifier Engine</h1>
-        <p>AI-powered sales conversation analyzer</p>
-        <div class="home-actions">
-          <button onclick="startDeal()">Start New Deal</button>
+      <div class="home-hero">
+        <h1>Close more deals with AI.</h1>
+        <p>Talk to Alex, your AI prospect, and get live classification of your sales stages. Master the art of the pitch.</p>
+        <div style="display:flex; justify-content:center; gap:12px;">
+          <button onclick="startDeal()">Try a new pitch</button>
+          <button class="secondary" onclick="if(state.sidebarDeals.length)openDeal(state.sidebarDeals[0].id)">Review history</button>
         </div>
       </div>
     </div>
   `;
 }
 
-// ===========================
-// CHAT VIEW
-// ===========================
-
-function formatMsg(m) {
-  if (!m || !m.text) return '';
-  const align = m.role === 'sales' ? 'msg-sales' : 'msg-prospect';
-  const label = m.role === 'sales' ? '🤖 Sales Rep' : '👤 You';
-  return `
-    <div class="msg-row ${align}">
-      <div class="msg-bubble">
-        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">${label}</div>
-        ${m.text}
-      </div>
-    </div>
-  `;
-}
-
-function buildChat() {
+function renderChat() {
   let modalHtml = "";
   if (state.analysis) {
     const stage = state.analysis.stage || "Unknown";
     const confidence = state.analysis.confidence || 0;
-    const reason = state.analysis.reason || "No reason provided";
-    // Derive status from stage — NOT stored in DB
-    const derivedStatus = stage === "Decision" ? "WON" : "IN PROGRESS";
-    const statusColor = derivedStatus === "WON" ? "var(--success)" : "var(--warning)";
+    const isWon = stage === "Decision";
     modalHtml = `
-      <div class="modal-wrap" onclick="closeModal(event)">
-        <div class="modal" onclick="event.stopPropagation()">
-          <h2 style="margin-top:0">Deal Classified</h2>
-          <div style="margin: 20px 0;">
-            <span class="badge" style="background:#334155">${stage}</span>
-            <span class="badge" style="background:${statusColor};color:#000">${derivedStatus}</span>
-            <span class="badge" style="background:var(--primary)">${Math.round(confidence * 100)}%</span>
+      <div class="modal-overlay" onclick="state.analysis=null; render()">
+        <div class="analysis-modal" onclick="event.stopPropagation()">
+          <div class="health-icon health-${isWon ? 'WON' : 'PROGRESS'}">
+            ${isWon ? '🎯' : '📊'}
           </div>
-          <p style="color:var(--text-muted);margin-bottom:24px">${reason}</p>
-          <button onclick="goHome()">Done</button>
+          <h2 style="font-size: 24px; margin-bottom: 8px;">Deal Summary</h2>
+          <p style="color: var(--text-muted); margin-bottom: 32px;">${state.analysis.reason}</p>
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+            <div style="background: var(--bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border);">
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">STAGE</div>
+              <div style="font-weight:700; color:var(--primary);">${stage}</div>
+            </div>
+            <div style="background: var(--bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border);">
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">CONFIDENCE</div>
+              <div style="font-weight:700; color:var(--success);">${Math.round(confidence*100)}%</div>
+            </div>
+          </div>
+
+          <button style="width:100%; justify-content:center; padding:14px;" onclick="goHome()">Done</button>
         </div>
       </div>
     `;
@@ -365,17 +525,32 @@ function buildChat() {
   return `
     ${modalHtml}
     <div class="header">
-      <h3>Sales Chat • ${state.prospect} <span style="font-weight:normal; font-size:13px; color:var(--text-muted);">(${state.product || 'Product'})</span></h3>
-      ${!state.analysis ? `<button class="danger sm" onclick="endDeal()">End Deal</button>` : ''}
+      <h3>
+        <div class="dot"></div>
+        Pitching to ${state.prospect}
+        <span style="font-weight:400; font-size:13px; color:var(--text-muted); background: var(--surface); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); ml: 10px;">${state.product}</span>
+      </h3>
+      <button class="danger" onclick="endDeal()">End Session</button>
     </div>
     <div class="content-area">
-      <div class="chat-container">
+      <div class="chat-view">
         <div class="messages" id="msgs">
-          ${state.chatParams.map(formatMsg).join('')}
-          ${state.loading ? `<div class="msg-row msg-sales"><div class="msg-bubble" style="opacity:0.5; font-style:italic">Typing...</div></div>` : ''}
+          ${state.chatParams.map(m => `
+            <div class="msg-group ${m.role}">
+              <div class="message-info">${m.role === 'sales' ? 'Prospect Bot' : 'Sales Person (You)'}</div>
+              <div class="msg-bubble">${m.text}</div>
+            </div>
+          `).join('')}
+          ${state.loading ? `
+            <div class="msg-group sales">
+              <div class="typing-indicator"><span></span><span></span><span></span></div>
+            </div>
+          ` : ''}
         </div>
-        <div class="input-area">
-          <input type="text" id="chat-inp" placeholder="Respond as the prospect..." onkeydown="if(event.key==='Enter') sendChat()">
+        <div class="input-bar">
+          <div class="input-wrapper">
+            <input type="text" id="chat-inp" placeholder="Type your response..." onkeydown="if(event.key==='Enter') sendChat()">
+          </div>
           <button onclick="sendChat()">Send</button>
         </div>
       </div>
@@ -383,46 +558,62 @@ function buildChat() {
   `;
 }
 
-// ===========================
-// DETAIL VIEW
-// ===========================
-
-function buildDetail() {
-  if (!state.activeDeal) {
-    return '<div class="content-area"><div class="home"><p>Deal not found.</p></div></div>';
-  }
+function renderDetail() {
   const d = state.activeDeal;
-  const bd = d.breakdown || {};
+  if (!d) return '';
+  
   const stages = ['Awareness', 'Interest', 'Evaluation', 'Decision'];
-  const convo = d.conversation || [];
-
-  const stageSections = stages.map(st => {
-    const isActive = d.stage === st;
-    const txt = bd[st] || 'No detail recorded.';
-    return `
-      <div class="stage-section ${isActive ? 'active' : ''}">
-        <h4>${st}</h4>
-        <p style="margin:0; font-size:14px; color:var(--text-muted); line-height:1.5;">${txt}</p>
-      </div>
-    `;
-  }).join('');
+  const currentIdx = stages.indexOf(d.stage);
 
   return `
     <div class="header">
-      <h3>Deal #${d.id} • ${d.prospect} <span class="stage-badge stage-${d.stage}" style="margin-left:8px">${d.stage}</span></h3>
-      <button class="secondary sm" onclick="goHome()">Close</button>
+      <h3>Reviewing Deal with ${d.prospect}</h3>
+      <button class="secondary sm" onclick="goHome()">Back to Home</button>
     </div>
-    <div class="split-layout">
-      <div class="split-left">
-        <div style="padding:12px 16px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">Conversation History</div>
-        <div class="messages" style="height:100%;">
-          ${convo.length === 0 ? '<p style="text-align:center;color:var(--text-muted);padding:20px;">No messages.</p>' : convo.map(formatMsg).join('')}
+    <div class="detail-view">
+      <div class="detail-chat-panel">
+        <div class="messages">
+          ${(d.conversation || []).map(m => `
+            <div class="msg-group ${m.role}">
+              <div class="message-info">${m.role === 'sales' ? 'Prospect' : 'Sales Person'}</div>
+              <div class="msg-bubble">${m.text}</div>
+            </div>
+          `).join('')}
         </div>
       </div>
-      <div class="split-right">
-        <div class="stage-box">
-          <h3>Deal Stages for ${d.prospect}</h3>
-          ${stageSections}
+      <div class="detail-insights-panel">
+        <div class="insight-card">
+          <h4><span style="font-size:16px;">📈</span> Sales Progression</h4>
+          ${stages.map((st, i) => `
+            <div class="stage-pill ${i < currentIdx ? 'complete' : (i === currentIdx ? 'current' : '')}">
+              <div class="indicator"></div>
+              <span>${st}</span>
+              ${i < currentIdx ? '<span style="margin-left:auto; font-size:12px;">✓</span>' : ''}
+              ${i === currentIdx ? '<span style="margin-left:auto; font-size:10px; background:var(--primary); padding:2px 6px; border-radius:4px;">ACTIVE</span>' : ''}
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="insight-card">
+          <h4><span style="font-size:16px;">💡</span> AI Coach Notes</h4>
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            ${stages.map((st, i) => d.breakdown?.[st] ? `
+              <div style="border-left: 2px solid ${i <= currentIdx ? 'var(--primary)' : 'var(--border)'}; padding-left: 12px;">
+                <div style="font-size:12px; font-weight:600; margin-bottom:4px;">${st}</div>
+                <div style="font-size:13px; color:var(--text-muted); line-height:1.4;">${d.breakdown[st]}</div>
+              </div>
+            ` : '').join('')}
+          </div>
+        </div>
+
+        <div class="insight-card" style="background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, transparent 100%); border-color: rgba(59,130,246,0.3);">
+          <h4><span style="font-size:16px;">🚀</span> Recommended Action</h4>
+          <p style="font-size:14px; line-height:1.5; margin:0;">
+            ${currentIdx === 0 ? "Focus on establishing concrete value and identifying the core pain point." : 
+              currentIdx === 1 ? "Start introducing technical specs and handling initial objections." :
+              currentIdx === 2 ? "Provide pricing options and request a follow-up or demo sign-off." :
+              "Finalize logical next steps: Contract or handoff to account management."}
+          </p>
         </div>
       </div>
     </div>
@@ -430,40 +621,28 @@ function buildDetail() {
 }
 
 // ===========================
-// ACTIONS
+// CORE LOGIC (Same as previous but with render calls)
 // ===========================
 
 async function loadSidebar() {
-  console.log("Loading sidebar deals...");
   try {
     const res = await fetch(API + '/deals');
     const data = await res.json();
-    console.log("Sidebar deals:", data);
-    if (Array.isArray(data)) {
-      state.sidebarDeals = data;
-    } else {
-      state.sidebarDeals = [];
-    }
-  } catch(e) {
-    console.error("Failed to load sidebar:", e);
-    state.sidebarDeals = [];
-  }
-  render();
+    if (Array.isArray(data)) state.sidebarDeals = data;
+    render();
+  } catch(e) { console.error(e); }
 }
 
 async function startDeal() {
-  const p = prompt("Enter Prospect Name (e.g. John / Sarah):");
-  if (!p || !p.trim()) return;
-
+  const p = prompt("Enter Name of the Prospect:");
+  if (!p) return;
   state.prospect = p.trim();
   state.product = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
   state.chatParams = [];
   state.analysis = null;
-  state.loading = true;
   state.view = "CHAT";
+  state.loading = true;
   render();
-
-  console.log("Starting deal:", { prospect: state.prospect, product: state.product });
 
   try {
     const res = await fetch(API + '/chat', {
@@ -472,15 +651,8 @@ async function startDeal() {
       headers: { 'Content-Type': 'application/json' }
     });
     const data = await res.json();
-    console.log("Initial reply:", data);
-    if (!res.ok) throw new Error(data.detail || "Chat error");
-    if (data.reply) {
-      state.chatParams.push({ role: 'sales', text: data.reply });
-    }
-  } catch(e) {
-    console.error("startDeal error:", e);
-    alert("Failed to start deal: " + e.message);
-  }
+    if (data.reply) state.chatParams.push({ role: 'sales', text: data.reply });
+  } catch(e) { alert("Failed to start: " + e.message); }
   state.loading = false;
   render();
 }
@@ -489,13 +661,11 @@ async function sendChat() {
   const inp = document.getElementById('chat-inp');
   if (!inp || !inp.value.trim()) return;
 
-  const userText = inp.value.trim();
-  state.chatParams.push({ role: 'prospect', text: userText });
+  const text = inp.value.trim();
+  state.chatParams.push({ role: 'prospect', text });
   inp.value = '';
   state.loading = true;
   render();
-
-  console.log("Sending conversation:", JSON.stringify(state.chatParams));
 
   try {
     const res = await fetch(API + '/chat', {
@@ -504,119 +674,40 @@ async function sendChat() {
       headers: { 'Content-Type': 'application/json' }
     });
     const data = await res.json();
-    console.log("Sales reply:", data);
-    if (!res.ok) throw new Error(data.detail || "Chat error");
-    if (data.reply) {
-      state.chatParams.push({ role: 'sales', text: data.reply });
-    }
-  } catch(e) {
-    console.error("sendChat error:", e);
-    alert("Chat error: " + e.message);
-  }
+    if (data.reply) state.chatParams.push({ role: 'sales', text: data.reply });
+  } catch(e) { alert("Error: " + e.message); }
   state.loading = false;
   render();
 }
 
 async function endDeal() {
-  if (state.chatParams.length === 0) {
-    alert("No conversation to classify. Send some messages first.");
-    return;
-  }
-
   state.loading = true;
   render();
-
-  const payload = {
-    prospect: state.prospect,
-    conversation: state.chatParams
-  };
-
-  console.log("Ending deal — sending to POST /deals:", JSON.stringify(payload));
-
   try {
     const res = await fetch(API + '/deals', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ prospect: state.prospect, conversation: state.chatParams }),
       headers: { 'Content-Type': 'application/json' }
     });
-    const data = await res.json();
-    console.log("POST /deals response:", data);
-
-    if (!res.ok) throw new Error(data.detail || "Failed to classify deal");
-
-    state.analysis = {
-      stage: data.stage || "Unknown",
-      confidence: data.confidence || 0,
-      reason: data.reason || "No reason provided"
-    };
-
-    // Reload sidebar to show new deal
-    await loadSidebarSilent();
-  } catch(e) {
-    console.error("endDeal error:", e);
-    alert("Failed to end deal: " + e.message);
-    state.analysis = {
-      stage: "Unknown",
-      confidence: 0,
-      reason: "Error: " + e.message
-    };
-  }
+    state.analysis = await res.json();
+    await loadSidebar();
+  } catch(e) { alert("Classification failed: " + e.message); }
   state.loading = false;
   render();
 }
 
-async function loadSidebarSilent() {
-  try {
-    const res = await fetch(API + '/deals');
-    const data = await res.json();
-    if (Array.isArray(data)) state.sidebarDeals = data;
-  } catch(e) { console.error("sidebar reload error:", e); }
-}
-
 async function openDeal(id) {
-  console.log("Opening deal:", id);
   try {
     const res = await fetch(API + '/deals/' + id);
-    const data = await res.json();
-    console.log("GET /deals/" + id + " response:", data);
-
-    if (!res.ok) throw new Error(data.detail || "Deal not found");
-
-    state.activeDeal = data;
+    state.activeDeal = await res.json();
     state.view = "DETAIL";
-  } catch(e) {
-    console.error("openDeal error:", e);
-    alert("Failed to open deal: " + e.message);
-  }
-  render();
-}
-
-function goHome() {
-  state.view = "HOME";
-  state.analysis = null;
-  state.activeDeal = null;
-  render();
-}
-
-function closeModal(e) {
-  if (e.target.classList.contains('modal-wrap')) {
-    state.analysis = null;
     render();
-  }
+  } catch(e) { alert("Error opening: " + e.message); }
 }
 
-// Keyboard: Esc to go back
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (state.analysis) { state.analysis = null; render(); }
-    else if (state.view === 'DETAIL') { goHome(); }
-    else if (state.view === 'CHAT') { goHome(); }
-  }
-});
+function goHome() { state.view = "HOME"; state.analysis = null; state.activeDeal = null; render(); }
 
-// ===========================
-// BOOT
-// ===========================
+// Init
 loadSidebar();
 </script>
 </body>
